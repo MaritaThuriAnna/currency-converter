@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family:Georgia, 'Times New Roman', Times, serif;
     background-color: #f4f4f4;
     display: flex;
     justify-content: center;
@@ -14,11 +14,11 @@ body {
 }
 
 .container {
-    background-color: #951515;
-    color:#ffffff;
+    background-color: #f4e3e3;
+    color:#951515;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px #951515;
 }
 
 h1 {
@@ -48,8 +48,10 @@ input, select {
 }
 
 button {
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-size: large;
     padding: 10px;
-    background-color: #28a745;
+    background-color: #951515;
     color: white;
     border: none;
     border-radius: 4px;
@@ -57,11 +59,30 @@ button {
 }
 
 button:hover {
-    background-color: #218838;
+    background-color: #4f0808;
 }
 
 #result {
     margin-top: 20px;
     text-align: center;
     font-size: 1.2em;
+}
+
+@media screen and (max-width: 768px) {
+
+    body{
+        color: #951515;
+        /* background-color: #f4e3e3; */
+    }
+
+    .container {
+        color: #951515;
+        background-color: #f4e3e3;
+        box-shadow: 0 0 10px #951515;
+    }
+
+    button{
+        color: #ffffff;
+        font-weight: 900;
+    }
 }
