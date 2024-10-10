@@ -1,16 +1,15 @@
 import config from './config.js';
 
-const fromCurrency = 'EUR';
-const toCurrency = 'RON';
-const amount = 25;
+const fromCurrencySelect = document.getElementById('fromCurrency');
+const toCurrencySelect = document.getElementById('toCurrency');
+const amountInput = document.getElementById('amount');
+const resultDisplay = document.getElementById('result');
+const convertBTN = document.getElementById('convertBtn');
 
 const primaryUrl = `https://api.exchangeratesapi.io/v1/latest?access_key=${config.primaryApiKey}`;
 const fallbackUrl = `https://v6.exchangerate-api.com/v6/${config.fallbackApiKey}/latest/USD`;
 
-const fromCurrencySelect = document.getElementById('fromCurrency');
-const toCurrencySelect = document.getElementById('toCurrency');
-
-function fetchFromPrimaryAPI() {
+function fetchFromPrimaryAPI(fromCurrency, toCurrency, amount) {
     fetch(primaryUrl)
         .then(response => response.json())
         .then(data => {
@@ -19,70 +18,80 @@ function fetchFromPrimaryAPI() {
 
             if (data.success) {
                 const rates = data.rates;
-
-                selectCurrency(rates, fromCurrencySelect);
-                selectCurrency(rates, toCurrencySelect);
-
-                const fromRate = rates[fromCurrency];
-                const toRate = rates[toCurrency];
-
-                if (fromRate && toRate) {
-                    const convertedAmount = (amount / fromRate) * toRate;
-                    console.log(amount.toFixed(2) + " " + fromCurrency + " is " + convertedAmount.toFixed(2) + " " + toCurrency);
-                } else {
-                    alert("Error: One of the selected currencies is not available in the API response.");
+                if (!fromCurrencySelect.hasChildNodes()) {
+                    selectCurrency(rates);
                 }
-
+                if (fromCurrency && toCurrency && amount) {
+                    convert(rates, fromCurrency, toCurrency, amount);
+                }
             } else {
                 console.error('API Error:', data.error);
-                alert('Error: ${data.error.info}');
+                fetchFromFallbackAPI(fromCurrency, toCurrency, amount);
             }
         }).catch(error => {
             console.error('Error fetching the exchange rates from the primary API: ', error);
-            fetchFromFallbackAPI();
+            fetchFromFallbackAPI(fromCurrency, toCurrency, amount);
         });
 }
 
-function fetchFromFallbackAPI() {
+function fetchFromFallbackAPI(fromCurrency, toCurrency, amount) {
     fetch(fallbackUrl)
         .then(response => response.json())
         .then(data => {
             console.log('Secondary API Response:', data);
 
-            if (data.result == "success") {
+            if (data.result === "success") {
                 const rates = data.conversion_rates;
-
-                selectCurrency(rates, fromCurrencySelect);
-                selectCurrency(rates, toCurrencySelect);
-
-                const fromRate = rates[fromCurrency];
-                const toRate = rates[toCurrency];
-
-                if (fromRate && toRate) {
-                    const convertedAmount = (amount / fromRate) * toRate;
-                    console.log(amount.toFixed(2) + " " + fromCurrency + " is " + convertedAmount.toFixed(2) + " " + toCurrency);
-                } else {
-                    alert("Error: One of the selected currencies is not available in the API response.");
+                if (!fromCurrencySelect.hasChildNodes()) {
+                    selectCurrency(rates);
+                }
+                if (fromCurrency && toCurrency && amount) {
+                    convert(rates, fromCurrency, toCurrency, amount);
                 }
             }
             else {
                 console.error('Fallback API Error:', data['error-type']);
-                alert("Error: ${data['error-type']}");
             }
         }).catch(error => {
             console.error('Error fetching the exchange rates from the fallback API:', error);
-            alert('Error: Unable to fetch exchange rates from both APIs.');
         });
 }
 
-fetchFromPrimaryAPI();
+function selectCurrency(rates) {
+    fromCurrencySelect.innerHTML = '';
+    toCurrencySelect.innerHTML = '';
 
-function selectCurrency(rates, selectElement) {
     for (const currency in rates) {
         const option = document.createElement('option');
         option.value = currency;
         option.text = currency;
-        selectElement.appendChild(option);
+        fromCurrencySelect.appendChild(option.cloneNode(true));
+        toCurrencySelect.appendChild(option);
     }
 }
 
+convertBTN.addEventListener('click', () => {
+    const fromCurrency = fromCurrencySelect.value;
+    const toCurrency = toCurrencySelect.value;
+    const amount = parseFloat(amountInput.value);
+
+    if(!fromCurrency || !toCurrency || !amount || isNaN(amount)){
+        resultDisplay.textContent = "please fill with valid data!";
+        return;
+    }
+    fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
+});
+
+function convert(rates, fromCurrency, toCurrency, amount){
+    const fromRate = rates[fromCurrency];
+    const toRate = rates[toCurrency];
+
+    if (fromRate && toRate) {
+        const convertedAmount = (amount / fromRate) * toRate;
+        resultDisplay.textContent = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(2)} ${toCurrency}`;
+    } else {
+        resultDisplay.textContent = 'Currency conversion failed. Please try again.';
+    }
+}
+
+fetchFromPrimaryAPI();
