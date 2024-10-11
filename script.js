@@ -18,6 +18,9 @@ function fetchFromPrimaryAPI(fromCurrency, toCurrency, amount) {
 
             if (data.success) {
                 const rates = data.rates;
+                // const base = data.base;
+                // console.log("base: " + base);
+                storeLocally(rates);
                 if (!fromCurrencySelect.hasChildNodes()) {
                     selectCurrency(rates);
                 }
@@ -42,6 +45,7 @@ function fetchFromFallbackAPI(fromCurrency, toCurrency, amount) {
 
             if (data.result === "success") {
                 const rates = data.conversion_rates;
+                storeLocally(rates);
                 if (!fromCurrencySelect.hasChildNodes()) {
                     selectCurrency(rates);
                 }
@@ -62,11 +66,61 @@ function selectCurrency(rates) {
     toCurrencySelect.innerHTML = '';
 
     for (const currency in rates) {
-        const option = document.createElement('option');
-        option.value = currency;
-        option.text = currency;
-        fromCurrencySelect.appendChild(option.cloneNode(true));
-        toCurrencySelect.appendChild(option);
+        //DOM are elemente unice(pti folosi option.clone() cand faci append)
+        const option1 = document.createElement('option');
+        const option2 = document.createElement('option');
+
+        option1.value = currency;
+        option1.text = currency;
+
+        option2.value = currency;
+        option2.text = currency;
+
+        fromCurrencySelect.appendChild(option1);
+        toCurrencySelect.appendChild(option2);
+    }
+}
+
+function convert(rates, date, fromCurrency, toCurrency, amount){
+    const fromRate = rates[fromCurrency];
+    const toRate = rates[toCurrency];
+
+    if (fromRate && toRate) {
+        const convertedAmount = (amount / fromRate) * toRate;
+        resultDisplay.textContent = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(4)} ${toCurrency}`;
+        console.log(amount + " " + fromCurrency + " is " + convertedAmount.toFixed(4) + " " + toCurrency);
+    } else {
+        resultDisplay.textContent = 'You are offline. Attempting to use previous data from ' + date;
+    }
+}
+
+//in caz ca nu am net
+function storeLocally(rates){
+    //local instead of session(ca sa nu se goleasca cand se reseteaza pagina)
+    localStorage.setItem('storedRates', JSON.stringify(rates));
+    localStorage.setItem('lastUpdate', new Date().toISOString()); 
+}
+
+function switchToLocal(fromCurrency, toCurrency, amount){
+    const storedRates = localStorage.getItem('storedRates');
+
+    const storedDate = localStorage.getItem('lastUpdate')
+    const lastUpdateDate = new Date(storedDate);
+    const year = lastUpdateDate.getFullYear();
+    const month = (lastUpdateDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = lastUpdateDate.getDate().toString().padStart(2, '0');
+    
+    if(storedRates){
+
+        const rates = JSON.parse(storedRates);
+        const date = day + "/" + month + "/" + year;
+
+        resultDisplay.textContent = "No internet access, using local data!";
+        selectCurrency(rates);
+        convert(rates, date, fromCurrency, toCurrency, amount);
+    }
+    else{
+        resultDisplay.textContent = "No internet access, unable to retrieve local data!"
     }
 }
 
@@ -76,22 +130,23 @@ convertBTN.addEventListener('click', () => {
     const amount = parseFloat(amountInput.value);
 
     if(!fromCurrency || !toCurrency || !amount || isNaN(amount)){
-        resultDisplay.textContent = "please fill with valid data!";
+        resultDisplay.textContent = "Please fill with valid data!";
         return;
     }
-    fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
+
+    if (navigator.onLine) {
+        console.log("online");
+        fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
+      } else {
+        console.log("offline");
+        resultDisplay.textContent = "You are offline. Attempting to use cached data...";
+        switchToLocal(fromCurrency, toCurrency, amount);
+      }
 });
 
-function convert(rates, fromCurrency, toCurrency, amount){
-    const fromRate = rates[fromCurrency];
-    const toRate = rates[toCurrency];
-
-    if (fromRate && toRate) {
-        const convertedAmount = (amount / fromRate) * toRate;
-        resultDisplay.textContent = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(2)} ${toCurrency}`;
-    } else {
-        resultDisplay.textContent = 'Currency conversion failed. Please try again.';
-    }
+if (navigator.onLine) {
+    fetchFromPrimaryAPI();
+} else {
+    switchToLocal();
 }
-
-fetchFromPrimaryAPI();
+// switchToLocal();
