@@ -1,10 +1,24 @@
 import config from './config.js';
 
+//fa ceva sa fie cautaarea mai usoara dupa numele monedei
+
+// verifici daca ei date stocate
+// verifici daca datele sunt fresh
+// dupa dai starte la app
+// daca datele sunt mai vechi de 24 de ore 
+// -> faci fetch 
+// -> daca nu poti face fetch-ul iei datele salvate si afisezi mesajca sunt vechi
+
+//verifica faca e cifra sau litera -> validator
+
+//window onload -> incarcare valute cand deschizi pagina
+
 const fromCurrencySelect = document.getElementById('fromCurrency');
 const toCurrencySelect = document.getElementById('toCurrency');
 const amountInput = document.getElementById('amount');
 const resultDisplay = document.getElementById('result');
 const convertBTN = document.getElementById('convertBtn');
+
 
 const primaryUrl = `https://api.exchangeratesapi.io/v1/latest?access_key=${config.primaryApiKey}`;
 const fallbackUrl = `https://v6.exchangerate-api.com/v6/${config.fallbackApiKey}/latest/USD`;
@@ -81,7 +95,7 @@ function selectCurrency(rates) {
     }
 }
 
-function convert(rates, date, fromCurrency, toCurrency, amount){
+function convert(rates, date, fromCurrency, toCurrency, amount) {
     const fromRate = rates[fromCurrency];
     const toRate = rates[toCurrency];
 
@@ -95,13 +109,13 @@ function convert(rates, date, fromCurrency, toCurrency, amount){
 }
 
 //in caz ca nu am net
-function storeLocally(rates){
+function storeLocally(rates) {
     //local instead of session(ca sa nu se goleasca cand se reseteaza pagina)
     localStorage.setItem('storedRates', JSON.stringify(rates));
-    localStorage.setItem('lastUpdate', new Date().toISOString()); 
+    localStorage.setItem('lastUpdate', new Date().toISOString());  // iso format: YYYY-MM-DDTHH:mm:ss.sssZ
 }
 
-function switchToLocal(fromCurrency, toCurrency, amount){
+function switchToLocal(fromCurrency, toCurrency, amount) {
     const storedRates = localStorage.getItem('storedRates');
 
     const storedDate = localStorage.getItem('lastUpdate')
@@ -109,8 +123,8 @@ function switchToLocal(fromCurrency, toCurrency, amount){
     const year = lastUpdateDate.getFullYear();
     const month = (lastUpdateDate.getMonth() + 1).toString().padStart(2, '0');
     const day = lastUpdateDate.getDate().toString().padStart(2, '0');
-    
-    if(storedRates){
+
+    if (storedRates) {
 
         const rates = JSON.parse(storedRates);
         const date = day + "/" + month + "/" + year;
@@ -119,7 +133,7 @@ function switchToLocal(fromCurrency, toCurrency, amount){
         selectCurrency(rates);
         convert(rates, date, fromCurrency, toCurrency, amount);
     }
-    else{
+    else {
         resultDisplay.textContent = "No internet access, unable to retrieve local data!"
     }
 }
@@ -129,7 +143,7 @@ convertBTN.addEventListener('click', () => {
     const toCurrency = toCurrencySelect.value;
     const amount = parseFloat(amountInput.value);
 
-    if(!fromCurrency || !toCurrency || !amount || isNaN(amount)){
+    if (!fromCurrency || !toCurrency || !amount || isNaN(amount)) {
         resultDisplay.textContent = "Please fill with valid data!";
         return;
     }
@@ -137,11 +151,11 @@ convertBTN.addEventListener('click', () => {
     if (navigator.onLine) {
         console.log("online");
         fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
-      } else {
+    } else {
         console.log("offline");
         resultDisplay.textContent = "You are offline. Attempting to use cached data...";
         switchToLocal(fromCurrency, toCurrency, amount);
-      }
+    }
 });
 
 if (navigator.onLine) {
