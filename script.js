@@ -95,7 +95,7 @@ function selectCurrency(rates) {
     }
 }
 
-function convert(rates, date, fromCurrency, toCurrency, amount) {
+function convert(rates,  fromCurrency, toCurrency, amount) {
     const fromRate = rates[fromCurrency];
     const toRate = rates[toCurrency];
 
@@ -104,7 +104,7 @@ function convert(rates, date, fromCurrency, toCurrency, amount) {
         resultDisplay.textContent = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(4)} ${toCurrency}`;
         console.log(amount + " " + fromCurrency + " is " + convertedAmount.toFixed(4) + " " + toCurrency);
     } else {
-        resultDisplay.textContent = 'You are offline. Attempting to use previous data from ' + date;
+        resultDisplay.textContent = 'You are offline. Attempting to use previous data from ' ;
     }
 }
 
@@ -118,20 +118,20 @@ function storeLocally(rates) {
 function switchToLocal(fromCurrency, toCurrency, amount) {
     const storedRates = localStorage.getItem('storedRates');
 
-    const storedDate = localStorage.getItem('lastUpdate')
-    const lastUpdateDate = new Date(storedDate);
-    const year = lastUpdateDate.getFullYear();
-    const month = (lastUpdateDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = lastUpdateDate.getDate().toString().padStart(2, '0');
+    // const storedDate = localStorage.getItem('lastUpdate')
+    // const lastUpdateDate = new Date(storedDate);
+    // const year = lastUpdateDate.getFullYear();
+    // const month = (lastUpdateDate.getMonth() + 1).toString().padStart(2, '0');
+    // const day = lastUpdateDate.getDate().toString().padStart(2, '0');
 
     if (storedRates) {
 
         const rates = JSON.parse(storedRates);
-        const date = day + "/" + month + "/" + year;
+        //const date = day + "/" + month + "/" + year;
 
         resultDisplay.textContent = "No internet access, using local data!";
         selectCurrency(rates);
-        convert(rates, date, fromCurrency, toCurrency, amount);
+        convert(rates,  fromCurrency, toCurrency, amount);
     }
     else {
         resultDisplay.textContent = "No internet access, unable to retrieve local data!"
