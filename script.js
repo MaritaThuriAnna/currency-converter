@@ -27,26 +27,18 @@ function fetchFromPrimaryAPI(fromCurrency, toCurrency, amount) {
     fetch(primaryUrl)
         .then(response => response.json())
         .then(data => {
-
-            console.log('Primary API Response:', data);
-
             if (data.success) {
                 const rates = data.rates;
-                // const base = data.base;
-                // console.log("base: " + base);
                 storeLocally(rates);
-                if (!fromCurrencySelect.hasChildNodes()) {
-                    selectCurrency(rates);
-                }
+                selectCurrencyIfNeeded(rates);
                 if (fromCurrency && toCurrency && amount) {
                     convert(rates, fromCurrency, toCurrency, amount);
                 }
             } else {
-                console.error('API Error:', data.error);
                 fetchFromFallbackAPI(fromCurrency, toCurrency, amount);
             }
-        }).catch(error => {
-            console.error('Error fetching the exchange rates from the primary API: ', error);
+        })
+        .catch(() => {
             fetchFromFallbackAPI(fromCurrency, toCurrency, amount);
         });
 }
@@ -55,24 +47,21 @@ function fetchFromFallbackAPI(fromCurrency, toCurrency, amount) {
     fetch(fallbackUrl)
         .then(response => response.json())
         .then(data => {
-            console.log('Secondary API Response:', data);
-
             if (data.result === "success") {
                 const rates = data.conversion_rates;
                 storeLocally(rates);
-                if (!fromCurrencySelect.hasChildNodes()) {
-                    selectCurrency(rates);
-                }
+                selectCurrencyIfNeeded(rates);
                 if (fromCurrency && toCurrency && amount) {
                     convert(rates, fromCurrency, toCurrency, amount);
                 }
             }
-            else {
-                console.error('Fallback API Error:', data['error-type']);
-            }
-        }).catch(error => {
-            console.error('Error fetching the exchange rates from the fallback API:', error);
         });
+}
+
+function selectCurrencyIfNeeded(rates) {
+    if (!fromCurrencySelect.hasChildNodes()) {
+        selectCurrency(rates);
+    }
 }
 
 function selectCurrency(rates) {
@@ -80,7 +69,6 @@ function selectCurrency(rates) {
     toCurrencySelect.innerHTML = '';
 
     for (const currency in rates) {
-        //DOM are elemente unice(pti folosi option.clone() cand faci append)
         const option1 = document.createElement('option');
         const option2 = document.createElement('option');
 
@@ -101,10 +89,10 @@ function convert(rates,  fromCurrency, toCurrency, amount) {
 
     if (fromRate && toRate) {
         const convertedAmount = (amount / fromRate) * toRate;
-        resultDisplay.textContent = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(4)} ${toCurrency}`;
-        console.log(amount + " " + fromCurrency + " is " + convertedAmount.toFixed(4) + " " + toCurrency);
+        resultDisplay.textContent = `${amount.toFixed(3)} ${fromCurrency} = ${convertedAmount.toFixed(3)} ${toCurrency}`;
+        console.log(amount.toFixed(3) + " " + fromCurrency + " is " + convertedAmount.toFixed(3) + " " + toCurrency);
     } else {
-        resultDisplay.textContent = 'You are offline. Attempting to use previous data from ' ;
+        resultDisplay.textContent = 'Offline, using cached data.' ;
     }
 }
 
@@ -115,26 +103,28 @@ function storeLocally(rates) {
     localStorage.setItem('lastUpdate', new Date().toISOString());  // iso format: YYYY-MM-DDTHH:mm:ss.sssZ
 }
 
+//mai recenta de o zi
+function isDataFresh() {
+    const lastUpdate = localStorage.getItem('lastUpdate');
+    if (!lastUpdate) return false;
+    const now = new Date();
+    const lastUpdateDate = new Date(lastUpdate);
+    const timeDifference = (now - lastUpdateDate) / (1000 * 60 * 60);
+    return timeDifference < 24;
+}
+
 function switchToLocal(fromCurrency, toCurrency, amount) {
     const storedRates = localStorage.getItem('storedRates');
 
-    // const storedDate = localStorage.getItem('lastUpdate')
-    // const lastUpdateDate = new Date(storedDate);
-    // const year = lastUpdateDate.getFullYear();
-    // const month = (lastUpdateDate.getMonth() + 1).toString().padStart(2, '0');
-    // const day = lastUpdateDate.getDate().toString().padStart(2, '0');
-
     if (storedRates) {
-
         const rates = JSON.parse(storedRates);
-        //const date = day + "/" + month + "/" + year;
-
-        resultDisplay.textContent = "No internet access, using local data!";
-        selectCurrency(rates);
-        convert(rates,  fromCurrency, toCurrency, amount);
-    }
-    else {
-        resultDisplay.textContent = "No internet access, unable to retrieve local data!"
+        resultDisplay.textContent = "Using local data!";
+        selectCurrencyIfNeeded(rates);
+        if (fromCurrency && toCurrency && amount) {
+            convert(rates, fromCurrency, toCurrency, amount);
+        }
+    } else {
+        resultDisplay.textContent = "No local data available!";
     }
 }
 
@@ -149,18 +139,38 @@ convertBTN.addEventListener('click', () => {
     }
 
     if (navigator.onLine) {
-        console.log("online");
-        fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
+        if (isDataFresh()) {
+            console.log("Using fresh data from local storage");
+            switchToLocal(fromCurrency, toCurrency, amount);
+        } else {
+            console.log("Fetching fresh data from API");
+            fetchFromPrimaryAPI(fromCurrency, toCurrency, amount);
+        }
     } else {
-        console.log("offline");
-        resultDisplay.textContent = "You are offline. Attempting to use cached data...";
+        console.log("Offline, using cached data");
         switchToLocal(fromCurrency, toCurrency, amount);
     }
 });
 
-if (navigator.onLine) {
-    fetchFromPrimaryAPI();
-} else {
-    switchToLocal();
-}
+
+window.onload = () => {
+    if (navigator.onLine) {
+        if (isDataFresh()) {
+            console.log("Using fresh data from local storage");
+            switchToLocal();
+        } else {
+            console.log("Fetching fresh data from API");
+            fetchFromPrimaryAPI();
+        }
+    } else {
+        console.log("Offline, using cached data");
+        switchToLocal();
+    }
+};
+
+// if (navigator.onLine) {
+//     fetchFromPrimaryAPI();
+// } else {
+//     switchToLocal();
+// }
 // switchToLocal();
